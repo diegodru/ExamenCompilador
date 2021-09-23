@@ -19,9 +19,10 @@ namespace DotNetWeb.Core.Statements
       return string.Empty;
     }
 
-    public override void Interpret()
+    public override Expression Interpret()
     {
       EnvironmentManager.UpdateVariable(Id.Token.Lexeme, Expression.Evaluate());
+      return null;
     }
 
     public override void ValidateSemantic()

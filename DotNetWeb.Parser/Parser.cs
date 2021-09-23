@@ -1,6 +1,7 @@
 ﻿using DotNetWeb.Core;
 using DotNetWeb.Core.Expressions;
 using DotNetWeb.Core.Interfaces;
+using DotNetWeb.Core.Statements;
 using System;
 
 namespace DotNetWeb.Parser
@@ -21,14 +22,15 @@ namespace DotNetWeb.Parser
 
         private void Program()
         {
-            var init = Init();
+            Init();
             Template();
         }
 
-        private void Template()
+        private Expression Template()
         {
-            Tag();
+            var expression = Tag();
             InnerTemplate();
+            return expression;
         }
         
         private void InnerTemplate()
@@ -38,43 +40,48 @@ namespace DotNetWeb.Parser
                 Template();
             }
         }
-        private void Tag()
+        private Expression Tag()
         {
             Match(TokenType.LessThan);
+            var token = lookAhead;
             Match(TokenType.Identifier);
             Match(TokenType.GreaterThan);
-            Stmts();
+            var nodo = new HtmlNode(token, Stmts());
             Match(TokenType.LessThan);
             Match(TokenType.Slash);
             Match(TokenType.Identifier);
             Match(TokenType.GreaterThan);
+            return nodo;
         }
 
-        private void Stmts()
+        private Expression Stmts()
         {
             if (this.lookAhead.TokenType == TokenType.OpenBrace)
             {
-                Stmt();
+                var expression = Stmt();
                 Stmts();
+                return expression;
             }
+            return null;
         }
 
-        private Statement Stmt()
+        private Expression Stmt()
         {
             Match(TokenType.OpenBrace);
             switch (this.lookAhead.TokenType)
             {
                 case TokenType.OpenBrace:
                     Match(TokenType.OpenBrace);
-                    Eq();
+                    var expression = Eq();
                     Match(TokenType.CloseBrace);
                     Match(TokenType.CloseBrace);
-                    break;
+                    return expression;
                 case TokenType.Percentage:
-                    IfStmt();
+                    return IfStmt();
                     break;
                 case TokenType.Hyphen:
                     ForeachStatement();
+                    return null;
                     break;
                 default:
                     throw new ApplicationException("Unrecognized statement");
@@ -99,19 +106,20 @@ namespace DotNetWeb.Parser
             Match(TokenType.CloseBrace);
         }
 
-        private void IfStmt()
+        private Expression IfStmt()
         {
             Match(TokenType.Percentage);
             Match(TokenType.IfKeyword);
-            Eq();
+            var expression = Eq();
             Match(TokenType.Percentage);
             Match(TokenType.CloseBrace);
-            Template();
+            var stmt = new IfStatement(expression as TypedExpression, Template() as TypedExpression).Interpret();
             Match(TokenType.OpenBrace);
             Match(TokenType.Percentage);
             Match(TokenType.EndIfKeyword);
             Match(TokenType.Percentage);
             Match(TokenType.CloseBrace);
+            return stmt;
         }
 
         private Expression Eq()
@@ -186,26 +194,31 @@ namespace DotNetWeb.Parser
                       Match(TokenType.RightParens);
                       return expression;
                     }
-                case TokenType.IntConstant:
+                case TokenType.IntConstant:{
                     var constant = new Constant(lookAhead, Type.Int);
                     Match(TokenType.IntConstant);
                     return constant;
-                case TokenType.FloatConstant:
+                                           }
+                case TokenType.FloatConstant:{
                     var constant = new Constant(lookAhead, Type.Float);
                     Match(TokenType.FloatConstant);
                     return constant;
-                case TokenType.StringConstant:
+                                             }
+                case TokenType.StringConstant:{
                     var constant = new Constant(lookAhead, Type.String);
                     Match(TokenType.StringConstant);
                     return constant;
-                case TokenType.OpenBracket:
+                                              }
+                case TokenType.OpenBracket:{
                     Match(TokenType.OpenBracket);
                     ExprList();
                     Match(TokenType.CloseBracket);
-                    break;
+                    return null;
+
+                                           }
                 default:
                     Match(TokenType.Identifier);
-                    break;
+                    return null;
             }
         }
 
@@ -273,54 +286,60 @@ namespace DotNetWeb.Parser
         {
             switch (this.lookAhead.TokenType)
             {
-                case TokenType.FloatKeyword:
+                case TokenType.FloatKeyword:{
                     Match(TokenType.FloatKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.Float);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
                     break;
-                case TokenType.StringKeyword:
+                                            }
+                case TokenType.StringKeyword:{
                     Match(TokenType.StringKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.String);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
+                                             }
                     break;
-                case TokenType.IntKeyword:
+                case TokenType.IntKeyword: {
                     Match(TokenType.IntKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.Int);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
                     break;
-                case TokenType.FloatListKeyword:
+                                           }
+                case TokenType.FloatListKeyword:{ 
                     Match(TokenType.FloatListKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.FloatList);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
                     break;
-                case TokenType.IntListKeyword:
+                                                }
+                case TokenType.IntListKeyword: {
                     Match(TokenType.IntListKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.IntList);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
                     break;
-                case TokenType.StringListKeyword:
+                                               }
+                case TokenType.StringListKeyword: {
                     Match(TokenType.StringListKeyword);
                     var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
                     var id = new Id(token, Type.StringList);
-                    EnvironmentManager.AddVariable(token.Lexemen, id);
+                    EnvironmentManager.AddVariable(token.Lexeme, id);
                     break;
+                                                  }
                 default:
                     throw new ApplicationException($"Unsupported type {this.lookAhead.Lexeme}");
             }

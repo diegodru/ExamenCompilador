@@ -1,10 +1,11 @@
 using DotNetWeb.Core.Interfaces;
+using DotNetWeb.Core.Expressions;
 
 namespace DotNetWeb.Core.Statements
 {
-  public abstract class Statement : ISemanticValidation, IStatementEvaluate
+  public abstract class Statement : ISemanticValidation
   {
-    public abstract void Interpret();
+    public abstract Expression Interpret();
 
     public abstract void ValidateSemantic();
 

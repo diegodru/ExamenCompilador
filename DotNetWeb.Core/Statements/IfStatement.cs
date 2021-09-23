@@ -1,6 +1,4 @@
 using DotNetWeb.Core.Expressions;
-using DotNetWeb.Core.Interfaces;
-using System;
 
 namespace DotNetWeb.Core.Statements
 {
@@ -22,12 +20,13 @@ namespace DotNetWeb.Core.Statements
       return string.Empty;
     }
 
-    public override void Interpret()
+    public override Expression Interpret()
     {
       if (Expression.Evaluate())
       {
-        Generate();
+        return Result;
       }
+      return null;
     }
 
     public override void ValidateSemantic() // <-------- implementar

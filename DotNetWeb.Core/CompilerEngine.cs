@@ -16,7 +16,8 @@ namespace DotNetWeb.Core
 
         public void Run()
         {
-            var intermediateCode = this.parser.Parse();
+            //var intermediateCode = this.parser.Parse();
+            this.parser.Parse();
         }
     }
 }

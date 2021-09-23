@@ -3,7 +3,9 @@ namespace DotNetWeb.Core.Expressions
   public class HtmlNode : Expression
   {
 
-    public HtmlNode(Token token) : base (token, null) {}
+    public HtmlNode(Token token, Expression innerNode) : base (token, null) {
+      InnerNode = innerNode;
+    }
 
     public Expression InnerNode { get; private set; }
 
