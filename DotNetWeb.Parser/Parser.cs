@@ -1,4 +1,5 @@
 ﻿using DotNetWeb.Core;
+using DotNetWeb.Core.Expressions;
 using DotNetWeb.Core.Interfaces;
 using System;
 
@@ -20,7 +21,7 @@ namespace DotNetWeb.Parser
 
         private void Program()
         {
-            Init();
+            var init = Init();
             Template();
         }
 
@@ -58,7 +59,7 @@ namespace DotNetWeb.Parser
             }
         }
 
-        private void Stmt()
+        private Statement Stmt()
         {
             Match(TokenType.OpenBrace);
             switch (this.lookAhead.TokenType)
@@ -113,67 +114,90 @@ namespace DotNetWeb.Parser
             Match(TokenType.CloseBrace);
         }
 
-        private void Eq()
+        private Expression Eq()
         {
-            Rel();
+            var expression = Rel();
             while (this.lookAhead.TokenType == TokenType.Equal || this.lookAhead.TokenType == TokenType.NotEqual)
             {
-                Move();
-                Rel();
+              var token = lookAhead;
+              Move();
+              expression = new RelationalExpression(token,
+                  expression as TypedExpression,
+                  Rel() as TypedExpression
+                  );
             }
+            return expression;
         }
 
-        private void Rel()
+        private Expression Rel()
         {
-            Expr();
+            var expression = Expr();
             if (this.lookAhead.TokenType == TokenType.LessThan
                 || this.lookAhead.TokenType == TokenType.GreaterThan)
             {
-                Move();
-                Expr();
+              var token = lookAhead;
+              Move();
+              expression = new RelationalExpression(token,
+                  expression as TypedExpression,
+                  Expr() as TypedExpression
+                  );
             }
+            return expression;
         }
 
-        private void Expr()
+        private Expression Expr()
         {
-            Term();
+            var expression = Term();
             while (this.lookAhead.TokenType == TokenType.Plus || this.lookAhead.TokenType == TokenType.Hyphen)
             {
-                Move();
-                Term();
+              var token = lookAhead;
+              Move();
+              expression = new ArithmeticOperator(token,
+                  expression as TypedExpression,
+                  Term() as TypedExpression
+                  );
             }
+            return expression;
         }
 
-        private void Term()
+        private Expression Term()
         {
-            Factor();
+            var expression = Factor();
             while (this.lookAhead.TokenType == TokenType.Asterisk || this.lookAhead.TokenType == TokenType.Slash)
             {
-                Move();
-                Factor();
+              var token = lookAhead;
+              Move();
+              expression = new ArithmeticOperator(token,
+                  expression as TypedExpression,
+                  Factor() as TypedExpression
+                  );
             }
+            return expression;
         }
 
-        private void Factor()
+        private Expression Factor()
         {
             switch (this.lookAhead.TokenType)
             {
                 case TokenType.LeftParens:
                     {
-                        Match(TokenType.LeftParens);
-                        Eq();
-                        Match(TokenType.RightParens);
+                      Match(TokenType.LeftParens);
+                      var expression = Eq();
+                      Match(TokenType.RightParens);
+                      return expression;
                     }
-                    break;
                 case TokenType.IntConstant:
+                    var constant = new Constant(lookAhead, Type.Int);
                     Match(TokenType.IntConstant);
-                    break;
+                    return constant;
                 case TokenType.FloatConstant:
+                    var constant = new Constant(lookAhead, Type.Float);
                     Match(TokenType.FloatConstant);
-                    break;
+                    return constant;
                 case TokenType.StringConstant:
+                    var constant = new Constant(lookAhead, Type.String);
                     Match(TokenType.StringConstant);
-                    break;
+                    return constant;
                 case TokenType.OpenBracket:
                     Match(TokenType.OpenBracket);
                     ExprList();
@@ -201,6 +225,7 @@ namespace DotNetWeb.Parser
             Match(TokenType.OpenBrace);
             Match(TokenType.Percentage);
             Match(TokenType.InitKeyword);
+            EnvironmentManager.PushContext();
             Code();
             Match(TokenType.Percentage);
             Match(TokenType.CloseBrace);
@@ -223,9 +248,10 @@ namespace DotNetWeb.Parser
 
         private void Assignation()
         {
+            var token = lookAhead;
             Match(TokenType.Identifier);
             Match(TokenType.Assignation);
-            Eq();
+            EnvironmentManager.UpdateVariable(token, Eq().Evaluate());
             Match(TokenType.SemiColon);
         }
 
@@ -249,33 +275,51 @@ namespace DotNetWeb.Parser
             {
                 case TokenType.FloatKeyword:
                     Match(TokenType.FloatKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.Float);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 case TokenType.StringKeyword:
                     Match(TokenType.StringKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.String);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 case TokenType.IntKeyword:
                     Match(TokenType.IntKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.Int);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 case TokenType.FloatListKeyword:
                     Match(TokenType.FloatListKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.FloatList);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 case TokenType.IntListKeyword:
                     Match(TokenType.IntListKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.IntList);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 case TokenType.StringListKeyword:
                     Match(TokenType.StringListKeyword);
+                    var token = lookAhead;
                     Match(TokenType.Identifier);
                     Match(TokenType.SemiColon);
+                    var id = new Id(token, Type.StringList);
+                    EnvironmentManager.AddVariable(token.Lexemen, id);
                     break;
                 default:
                     throw new ApplicationException($"Unsupported type {this.lookAhead.Lexeme}");

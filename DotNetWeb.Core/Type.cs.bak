@@ -1,0 +1,32 @@
+using System;
+using System.Collections.Generic;
+using Sytem.Diagnostics.CodeAnalysis;
+using System.Text;
+
+namespace Compiler.Core
+{
+  public class Type : IEquatable<Type>
+  {
+    public string Lexeme { get; private set; };
+    public TokenType TokenType { get; private set };
+
+    public Type(string lexeme, TokenType _tokenType)
+    {
+      TokenType = _tokenType;
+      Lexeme = lexeme;
+    }
+
+    public static Type Int => new Type("int", TokenType.BasiType);
+    public static Type Float => new Type("float", TokenType.BasiType);
+    public static Type Bool => new Type("bool", TokenType.BasiType);
+    public static Type String => new Type("string", TokenType.BasiType);
+    public static Type Void => new Type("void", TokenType.BasiType);
+
+    public bool Equals(Type other)
+    {
+      if (ReferenceEquals(null, other)) return false;
+      if (
+    }
+
+  }
+}
